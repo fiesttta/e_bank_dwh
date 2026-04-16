@@ -4,3 +4,8 @@ __pycache__/
 *.pyc
 .idea/
 .vscode/
+metabase.jar
+metabase.db.*
+plugins/
+.DS_Store
+Thumbs.db
