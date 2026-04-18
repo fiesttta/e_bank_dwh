@@ -1,0 +1,46 @@
+services:
+
+  db:
+    image: postgres:15
+    container_name: e_bank_db
+    environment:
+      POSTGRES_DB: e_bank
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: fiestta
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  metabase:
+    image: metabase/metabase:latest
+    container_name: e_bank_bi
+    ports:
+      - "3000:3000"
+    depends_on:
+      - db
+    restart: unless-stopped
+
+  scripts:
+    build: ./etl
+    container_name: e_bank_scripts
+    depends_on:
+      - db
+    volumes:
+      - ./etl:/app
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: e_bank_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - db
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

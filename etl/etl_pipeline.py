@@ -12,7 +12,7 @@ from datetime import date
 DB_NAME = "e_bank"
 DB_USER = "postgres"
 DB_PASS = "fiestta"
-DB_HOST = "localhost"
+DB_HOST = "db"
 
 # Создание функции для нашего ETL процесса
 def run_etl():

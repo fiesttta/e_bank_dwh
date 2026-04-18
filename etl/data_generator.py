@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 DB_NAME = "e_bank"
 DB_USER = "postgres" 
 DB_PASS = "fiestta"
-DB_HOST = "localhost"
+DB_HOST = "db"
 
 fake = Faker('ru_RU')
 
@@ -16,6 +16,66 @@ def generate_bank_data():
     try:
         conn = psycopg2.connect(dbname=DB_NAME, user=DB_USER, password=DB_PASS, host=DB_HOST)
         cur = conn.cursor()
+
+        # --- 0. ИНИЦИАЛИЗАЦИЯ СХЕМЫ (Создание таблиц) ---
+        print("Проверяем и создаем структуру таблиц...")
+        cur.execute("""
+            -- 1. Справочник филиалов
+            CREATE TABLE IF NOT EXISTS branches (
+                branch_id SERIAL PRIMARY KEY,
+                city TEXT NOT NULL,
+                address TEXT,
+                branch_type TEXT -- 'Physical', 'Digital'
+            );
+
+            -- 2. Справочник банковских продуктов
+            CREATE TABLE IF NOT EXISTS products (
+                product_id SERIAL PRIMARY KEY,
+                product_name TEXT NOT NULL,
+                interest_rate DECIMAL(5, 2) DEFAULT 0.00
+            );
+
+            -- 3. Клиенты
+            CREATE TABLE IF NOT EXISTS clients (
+                client_id SERIAL PRIMARY KEY,
+                full_name TEXT NOT NULL,
+                email TEXT UNIQUE,
+                gender CHAR(1),
+                birth_date DATE,
+                registration_date DATE DEFAULT CURRENT_DATE
+            );
+
+            -- 4. Счета
+            CREATE TABLE IF NOT EXISTS accounts (
+                account_id SERIAL PRIMARY KEY,
+                client_id INTEGER REFERENCES clients(client_id),
+                product_id INTEGER REFERENCES products(product_id),
+                branch_id INTEGER REFERENCES branches(branch_id),
+                account_number VARCHAR(20) UNIQUE NOT NULL,
+                balance DECIMAL(15, 2) DEFAULT 0.00,
+                currency VARCHAR(3) DEFAULT 'RUB',
+                opened_at DATE DEFAULT CURRENT_DATE
+            );
+
+            -- 5. Транзакции
+            CREATE TABLE IF NOT EXISTS transactions (
+                tx_id SERIAL PRIMARY KEY,
+                from_account_id INTEGER REFERENCES accounts(account_id),
+                to_account_id INTEGER REFERENCES accounts(account_id),
+                amount DECIMAL(15, 2) NOT NULL,
+                tx_type TEXT, -- 'transfer', 'withdrawal', 'deposit', 'fee'
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+
+            -- 6. Курсы валют
+            CREATE TABLE IF NOT EXISTS currency_rates (
+                rate_id SERIAL PRIMARY KEY,
+                currency_code VARCHAR(3),
+                rate_to_rub DECIMAL(10, 4),
+                effective_date DATE DEFAULT CURRENT_DATE
+            );
+        """)
+        conn.commit() # Фиксируем создание таблиц
 
         # --- ОЧИСТКА СТАРЫХ ДАННЫХ ---
         print("Очищаем старые данные (TRUNCATE CASCADE)...")
@@ -38,7 +98,7 @@ def generate_bank_data():
                         (p_name, p_rate))
             product_ids.append(cur.fetchone()[0])
 
-        # 3. Клиенты (Рандомные даты регистрации за последние 5 лет)
+        # 3. Клиенты
         print("Привлекаем 200 клиентов...")
         client_ids = []
         for _ in range(200):
@@ -50,9 +110,9 @@ def generate_bank_data():
                         (full_name, fake.unique.email(), gender, fake.date_of_birth(minimum_age=18, maximum_age=80), reg_date))
             client_ids.append(cur.fetchone()[0])
 
-        # 4. Счета (Мультивалютность и даты открытия)
+        # 4. Счета
         print("Открываем счета...")
-        account_data = {} # Сохраним инфу о счетах для транзакций (id: {currency, opened_at})
+        account_data = {}
         for client_id in client_ids:
             for _ in range(random.randint(1, 4)):
                 currency = random.choices(['RUB', 'USD', 'EUR'], weights=[80, 10, 10])[0]
@@ -65,12 +125,11 @@ def generate_bank_data():
                 acc_id = cur.fetchone()[0]
                 account_data[acc_id] = {'currency': currency, 'opened_at': opened_at}
 
-        # 5. Транзакции (С учетом дат регистрации + наличные)
-        print("💸 Симулируем 5000 транзакций...")
+        # 5. Транзакции
+        print("Симулируем 5000 транзакций...")
         account_ids = list(account_data.keys())
         
         for _ in range(5000):
-            # 1. Выбираем тип операции
             tx_type = random.choices(['transfer', 'salary', 'payment', 'cash_withdrawal', 'cash_deposit'], weights=[50, 10, 20, 10, 10])[0]
             amount = round(random.uniform(10.0, 50000.0), 2)
             
@@ -78,38 +137,32 @@ def generate_bank_data():
             acc_to = None
             acc_opened_date = None
 
-            # 2. Логика распределения счетов в зависимости от типа
-            if tx_type == 'cash_deposit': # Внесение наличных
+            if tx_type == 'cash_deposit':
                 acc_to = random.choice(account_ids)
                 acc_opened_date = account_data[acc_to]['opened_at']
                 
-            elif tx_type == 'cash_withdrawal': # Снятие наличных
+            elif tx_type == 'cash_withdrawal':
                 acc_from = random.choice(account_ids)
                 acc_opened_date = account_data[acc_from]['opened_at']
                 
-            else: # transfer, salary, payment (между двумя счетами)
+            else:
                 acc_from = random.choice(account_ids)
                 acc_to = random.choice(account_ids)
                 while acc_from == acc_to:
                     acc_to = random.choice(account_ids)
-                # Берем максимальную дату открытия из двух счетов! 
-                # (чтобы не перевести деньги на счет, который еще не существует)
                 acc_opened_date = max(account_data[acc_from]['opened_at'], account_data[acc_to]['opened_at'])
             
-            # 3. Генерируем дату строго после открытия счетов
             tx_date = fake.date_time_between_dates(datetime_start=acc_opened_date, datetime_end=datetime.now())
             
-            # 4. Отправляем в базу (None автоматически превратится в NULL)
             cur.execute("""INSERT INTO transactions (from_account_id, to_account_id, amount, tx_type, created_at) 
                            VALUES (%s, %s, %s, %s, %s);""",
                         (acc_from, acc_to, amount, tx_type, tx_date))
 
-        # 6. Курсы валют (Исторические данные за год)
+        # 6. Курсы валют
         print("Загружаем курсы валют...")
         base_date = datetime.now() - timedelta(days=365)
         for i in range(365):
             current_date = base_date + timedelta(days=i)
-            # Немного волатильности для реализма
             usd_rate = round(random.uniform(85.0, 100.0), 4)
             eur_rate = round(usd_rate * random.uniform(1.05, 1.15), 4)
             
