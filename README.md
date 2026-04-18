@@ -53,14 +53,27 @@ docker compose run --rm scripts python data_generator.py
 docker compose run --rm scripts python etl_pipeline.py
 ```
 
-🎉 **Готово!** 
-Теперь вы можете открыть `http://localhost:3000` (Metabase), подключиться к базе `db` (логин/пароль: postgres/fiestta) и строить аналитику на готовых витринах.
+🎉 **Готово! Инфраструктура развернута.**
 
-А так же вы можете открыть `http://localhost:5050` (pgAdmin4), (логин/пароль: admin@admin.com/admin) добавить сервер, на вкладке General прописать любое имя, а во вкладке Connection: 
-Hostname: db
-Port: 5432
-Maintenance database: e_bank
-Username: postgres
-Password: fiestta
-И нажать Save.
-После этого у вас будет доступ к управлению базой данных.
+Теперь вы можете подключиться к визуальным интерфейсам для работы с данными.
+
+### 📊 1. BI-система (Metabase)
+* **URL:** [http://localhost:3000](http://localhost:3000)
+* **Как подключить базу:**
+  * Выберите тип: **PostgreSQL**
+  * **Host:** `db` *(обращение идет по имени контейнера)*
+  * **Database name:** `e_bank`
+  * **Username:** `postgres`
+  * **Password:** `fiestta`
+
+### 🛠 2. Управление базой (pgAdmin 4)
+* **URL:** [http://localhost:5050](http://localhost:5050)
+* **Вход в интерфейс:** `admin@admin.com` / `admin`
+* **Как подключить базу (Add New Server):**
+  * Вкладка **General** -> Name: `E-Bank DB`
+  * Вкладка **Connection**:
+    * **Host name/address:** `db`
+    * **Port:** `5432`
+    * **Maintenance database:** `e_bank`
+    * **Username:** `postgres`
+    * **Password:** `fiestta`
