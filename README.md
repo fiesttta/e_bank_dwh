@@ -45,12 +45,12 @@ docker compose up -d
 
 **3. Сгенерируйте данные (создание таблиц + 5000 транзакций):**
 ```bash
-docker compose run --rm scripts python etl/data_generator.py
+docker compose run --rm scripts python data_generator.py
 ```
 
 **4. Запустите ETL-процесс (создание витрин):**
 ```bash
-docker compose run --rm scripts python etl/etl_pipeline.py
+docker compose run --rm scripts python etl_pipeline.py
 ```
 
 🎉 **Готово!** 
