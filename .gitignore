@@ -1,11 +1,16 @@
+# Python
 venv/
-.venv/
 __pycache__/
 *.pyc
+
+# Airflow (ОЧЕНЬ ВАЖНО не пушить логи, они весят гигабайты!)
+logs/
+airflow.cfg
+airflow.db
+webserver_config.py
+standalone_admin_password.txt
+
+# Скрытые файлы ОС и редакторов
+.DS_Store
 .idea/
 .vscode/
-metabase.jar
-metabase.db.*
-plugins/
-.DS_Store
-Thumbs.db

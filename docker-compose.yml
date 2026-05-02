@@ -42,5 +42,28 @@ services:
       - db
     restart: unless-stopped
 
+  airflow:
+    image: apache/airflow:2.8.1
+    container_name: e_bank_airflow
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./logs:/opt/airflow/logs
+      - ./plugins:/opt/airflow/plugins
+      - ./etl:/opt/airflow/etl
+    environment:
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://postgres:fiestta@db:5432/e_bank
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+      - _AIRFLOW_WWW_USER_CREATE=true
+      - _AIRFLOW_WWW_USER_USERNAME=admin
+      - _AIRFLOW_WWW_USER_PASSWORD=admin
+      - PYTHONPATH=/opt/airflow/etl
+      - _PIP_ADDITIONAL_REQUIREMENTS=faker psycopg2-binary pandas
+    command: standalone
+    depends_on:
+      - db
+
 volumes:
   postgres_data:
