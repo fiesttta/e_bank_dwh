@@ -11,7 +11,25 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 5s
+      retries: 5
     restart: unless-stopped
+
+  airflow_db:
+    image: postgres:15
+    container_name: airflow_postgres
+    environment:
+      - POSTGRES_USER=airflow
+      - POSTGRES_PASSWORD=airflow
+      - POSTGRES_DB=airflow
+    volumes:
+      - airflow_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 5s
+      retries: 5
 
   metabase:
     image: metabase/metabase:latest
@@ -54,7 +72,7 @@ services:
       - ./plugins:/opt/airflow/plugins
       - ./etl:/opt/airflow/etl
     environment:
-      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://postgres:fiestta@db:5432/e_bank
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@airflow_db/airflow
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
       - AIRFLOW__CORE__LOAD_EXAMPLES=False
       - _AIRFLOW_WWW_USER_CREATE=true
@@ -64,7 +82,11 @@ services:
       - _PIP_ADDITIONAL_REQUIREMENTS=faker psycopg2-binary pandas
     command: standalone
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+      airflow_db: 
+        condition: service_healthy
 
 volumes:
   postgres_data:
+  airflow_db_data:
