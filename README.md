@@ -41,6 +41,7 @@ cd e_bank_dwh
 ```
 **2. Настройте права для Airflow (Важно для Linux/macOS):**
 ```bash
+mkdir -p dags logs plugins
 echo -e "AIRFLOW_UID=$(id -u)" > .env
 sudo chmod -R 755 dags logs plugins
 ```
@@ -63,6 +64,10 @@ docker compose up -d
 ### ⚙️ 1. Оркестратор (Apache Airflow)
 * **URL:** [http://localhost:8080](http://localhost:8080)
 * **Логин/Пароль: fiestta/fiestta**
+(Если не подходит, создайте пользователя командой в терминале:)
+```bash
+docker exec -it e_bank_airflow airflow users create --username fiestta --password fiestta --firstname Data --lastname Engineer --role Admin --email admin@ebank.com
+```
 
 ### 📊 2. BI-система (Metabase)
 * **URL:** [http://localhost:3000](http://localhost:3000)
