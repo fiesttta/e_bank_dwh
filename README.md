@@ -40,8 +40,13 @@
 git clone https://github.com/fiesttta/e_bank_dwh
 cd e_bank_dwh
 ```
+**Настройте права для Airflow (Важно для Linux/macOS):**
+```bash
+echo -e "AIRFLOW_UID=$(id -u)" > .env
+sudo chmod -R 755 dags logs plugins
+```
 
-**2. Поднимите инфраструктуру (БД и BI-систему):**
+**3. Поднимите инфраструктуру (БД и BI-систему):**
 ```bash
 docker compose up -d
 ```
