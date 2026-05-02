@@ -45,6 +45,7 @@ services:
   airflow:
     image: apache/airflow:2.8.1
     container_name: e_bank_airflow
+    user: "${AIRFLOW_UID:-50000}:0"
     ports:
       - "8080:8080"
     volumes:
@@ -57,8 +58,8 @@ services:
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
       - AIRFLOW__CORE__LOAD_EXAMPLES=False
       - _AIRFLOW_WWW_USER_CREATE=true
-      - _AIRFLOW_WWW_USER_USERNAME=admin
-      - _AIRFLOW_WWW_USER_PASSWORD=admin
+      - _AIRFLOW_WWW_USER_USERNAME=fiestta
+      - _AIRFLOW_WWW_USER_PASSWORD=fiestta
       - PYTHONPATH=/opt/airflow/etl
       - _PIP_ADDITIONAL_REQUIREMENTS=faker psycopg2-binary pandas
     command: standalone
