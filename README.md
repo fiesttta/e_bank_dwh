@@ -27,7 +27,6 @@
   * `etl_pipeline.py` - Переносит данные из сырого слоя в аналитические витрины (конвертация валют, агрегации).
   * `etl_pyspark_colab_example` - Полигон для PySpark (пример обработки тех же данных в парадигме Big Data).
 * `/migrations` - Скрипты уровня базы данных (например, умный триггер для авто-обновления баланса счетов).
-* `.env` - Настройка UID для AIRFLOW (актуально для linux)
 * `.gitignore` - То, что не должно попасть в гит 
 * `dashboard.png` - Скрин для `README.md`
 * `docker-compose.yml` - Поднимает БД, Airflow, Metabase и среду для скриптов.
@@ -40,7 +39,7 @@
 git clone https://github.com/fiesttta/e_bank_dwh
 cd e_bank_dwh
 ```
-**Настройте права для Airflow (Важно для Linux/macOS):**
+**2. Настройте права для Airflow (Важно для Linux/macOS):**
 ```bash
 echo -e "AIRFLOW_UID=$(id -u)" > .env
 sudo chmod -R 755 dags logs plugins
