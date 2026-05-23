@@ -2,22 +2,20 @@ import psycopg2
 from faker import Faker
 import random
 from datetime import datetime, timedelta
-
-# --- НАСТРОЙКИ ПОДКЛЮЧЕНИЯ ---
-DB_NAME = "e_bank"
-DB_USER = "postgres" 
-DB_PASS = "fiestta"
-DB_HOST = "db"
+# импорт хука для подключения
+from airflow.providers.postgres.hooks.postgres import PostgresHook
 
 fake = Faker('ru_RU')
 
 def generate_bank_data():
     print("Подключаемся к базе данных...")
     try:
-        conn = psycopg2.connect(dbname=DB_NAME, user=DB_USER, password=DB_PASS, host=DB_HOST)
+        # подключаемся с помощью хука
+        hook = PostgresHook(postgres_conn_id="e_bank_conn")
+        conn = hook.get_conn()
         cur = conn.cursor()
 
-        # --- 0. ИНИЦИАЛИЗАЦИЯ СХЕМЫ (Создание таблиц) ---
+        # создание таблиц
         print("Проверяем и создаем структуру таблиц...")
         cur.execute("""
             -- 1. Справочник филиалов
@@ -75,13 +73,13 @@ def generate_bank_data():
                 effective_date DATE DEFAULT CURRENT_DATE
             );
         """)
-        conn.commit() # Фиксируем создание таблиц
+        conn.commit() # коммитим создание таблиц
 
-        # --- ОЧИСТКА СТАРЫХ ДАННЫХ ---
+        # очищаем старые данные
         print("Очищаем старые данные (TRUNCATE CASCADE)...")
         cur.execute("TRUNCATE TABLE transactions, accounts, clients, branches, products, currency_rates RESTART IDENTITY CASCADE;")
 
-        # 1. Филиалы
+        # филиалы
         print("Строим филиалы...")
         branch_ids = []
         for _ in range(5):
@@ -89,7 +87,7 @@ def generate_bank_data():
                         (fake.city(), fake.street_address(), random.choice(['Physical', 'Digital'])))
             branch_ids.append(cur.fetchone()[0])
 
-        # 2. Продукты
+        # продукты
         print("Выпускаем продукты...")
         product_ids = []
         products = [('Classic Debit', 0.0), ('Gold Credit', 19.9), ('Premium Multi', 5.0), ('Savings', 12.5)]
@@ -98,7 +96,7 @@ def generate_bank_data():
                         (p_name, p_rate))
             product_ids.append(cur.fetchone()[0])
 
-        # 3. Клиенты
+        # клиенты
         print("Привлекаем 200 клиентов...")
         client_ids = []
         for _ in range(200):
@@ -110,7 +108,7 @@ def generate_bank_data():
                         (full_name, fake.unique.email(), gender, fake.date_of_birth(minimum_age=18, maximum_age=80), reg_date))
             client_ids.append(cur.fetchone()[0])
 
-        # 4. Счета
+        # счета
         print("Открываем счета...")
         account_data = {}
         for client_id in client_ids:
@@ -125,7 +123,7 @@ def generate_bank_data():
                 acc_id = cur.fetchone()[0]
                 account_data[acc_id] = {'currency': currency, 'opened_at': opened_at}
 
-        # 5. Транзакции
+        # транзакции
         print("Симулируем 5000 транзакций...")
         account_ids = list(account_data.keys())
         
@@ -158,7 +156,7 @@ def generate_bank_data():
                            VALUES (%s, %s, %s, %s, %s);""",
                         (acc_from, acc_to, amount, tx_type, tx_date))
 
-        # 6. Курсы валют
+        # курсы валют
         print("Загружаем курсы валют...")
         base_date = datetime.now() - timedelta(days=365)
         for i in range(365):

@@ -1,13 +1,15 @@
 from datetime import datetime, timedelta
 from airflow import DAG
 from airflow.operators.bash import BashOperator
+# импортируем питоновский оператор
+from airflow.operators.python import PythonOperator
+# импортируем нашу же функцию из файла
+from data_generator import generate_bank_data
 
 default_args = {
     'owner': 'fiestta',
     'depends_on_past': False,
     'start_date': datetime(2024, 1, 1),
-    'email_on_failure': False,
-    'email_on_retry': False,
     'retries': 1,
     'retry_delay': timedelta(minutes=1),
 }
@@ -20,10 +22,10 @@ with DAG(
     catchup=False,
     tags=['e-bank', 'etl', 'dq'],
 ) as dag:
-
-    generate_data = BashOperator(
+    # пока меняем только тут на питон оп
+    generate_data = PythonOperator(
         task_id='generate_raw_data',
-        bash_command='python /opt/airflow/etl/data_generator.py',
+        python_callable=generate_bank_data,
     )
 
     run_etl = BashOperator(
