@@ -5,7 +5,7 @@ services:
     container_name: e_bank_db
     environment:
       POSTGRES_DB: e_bank
-      POSTGRES_USER: postgres
+      POSTGRES_USER: fiestta
       POSTGRES_PASSWORD: fiestta
     ports:
       - "5432:5432"
@@ -80,7 +80,7 @@ services:
       - _AIRFLOW_WWW_USER_PASSWORD=fiestta
       - PYTHONPATH=/opt/airflow/etl
       - _PIP_ADDITIONAL_REQUIREMENTS=faker psycopg2-binary pandas
-      - AIRFLOW_CONN_E_BANK_CONN=postgresql://postgres:fiestta@db:5432/e_bank
+      - AIRFLOW_CONN_E_BANK_CONN=postgresql://fiestta:fiestta@db:5432/e_bank
     command: standalone
     depends_on:
       db:
