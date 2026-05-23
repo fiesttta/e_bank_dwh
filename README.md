@@ -8,8 +8,8 @@
 ![E-Bank Dashboard](dashboard.png)
 
 ## 🛠 Что внутри? (Стек)
-* **Инфраструктура:** Docker, Docker Compose
-* **Оркестрация (Пайплайны):** Apache Airflow
+* **Инфраструктура:** Docker, Docker Compose, Bash-скрипт авторазвертывания (`start.sh`)
+* **Оркестрация (Пайплайны):** Apache Airflow (Hooks, Connections, PythonOperator)
 * **Базы данных:** PostgreSQL (OLTP & OLAP слои)
 * **ETL / Инженерия:** Python (psycopg2, pandas, faker), SQL
 * **Data Quality:** Проверка данных и остановка при аномалиях
@@ -25,12 +25,10 @@
   * `data_generator.py` - Инициализирует DDL-схемы и генерирует реалистичные данные (клиенты, счета, транзакции).
   * `dq_checks.py` - Скрипт проверок качества (Data Quality). Ищет дубликаты и клиентов-призраков.
   * `etl_pipeline.py` - Переносит данные из сырого слоя в аналитические витрины (конвертация валют, агрегации).
-  * `etl_pyspark_colab_example` - Полигон для PySpark (пример обработки тех же данных в парадигме Big Data).
+  * `etl_pyspark_colab_example.py` - Полигон для PySpark (пример обработки тех же данных в парадигме Big Data).
 * `/migrations` - Скрипты уровня базы данных (например, умный триггер для авто-обновления баланса счетов).
-* `.gitignore` - То, что не должно попасть в гит 
-* `dashboard.png` - Скрин для `README.md`
+* `start.sh` - Умный скрипт для безопасной настройки прав, создания папок и автоматического запуска.
 * `docker-compose.yml` - Поднимает БД, Airflow, Metabase и среду для скриптов.
-* `oop_bank` - Простейшая ООП модель банка (класс BankClient с методами пополнения и снятия).
 
 ## 🚀 Как запустить у себя
 
@@ -39,21 +37,14 @@
 git clone https://github.com/fiesttta/e_bank_dwh
 cd e_bank_dwh
 ```
-**2. Настройте права для Airflow (Важно для Linux/macOS):**
+**2. Запустите автоматический скрипт развертывания:**
 ```bash
-mkdir -p dags logs plugins
-echo -e "AIRFLOW_UID=$(id -u)" > .env
-sudo chmod -R 755 dags logs plugins
-```
-
-**3. Поднимите инфраструктуру (БД и BI-систему):**
-```bash
-docker compose up -d
+chmod +x start.sh
+./start.sh
 ```
 
 **4. Запустите автоматический конвейер (ETL):**
 * Перейдите в интерфейс Airflow (ссылка ниже).
-* Снимите DAG e_bank_daily_etl с паузы (синий переключатель слева).
 * Нажмите кнопку **Play** (Trigger DAG.)
 * Airflow сам сгенерирует данные, соберет витрины и проведет тестирование качества!
 
