@@ -55,10 +55,6 @@ chmod +x start.sh
 ### ⚙️ 1. Оркестратор (Apache Airflow)
 * **URL:** [http://localhost:8080](http://localhost:8080)
 * **Логин/Пароль: fiestta/fiestta**
-(Если не подходит, создайте пользователя командой в терминале:)
-```bash
-docker exec -it e_bank_airflow airflow users create --username fiestta --password fiestta --firstname Data --lastname Engineer --role Admin --email admin@ebank.com
-```
 
 ### 📊 2. BI-система (Metabase)
 * **URL:** [http://localhost:3000](http://localhost:3000)
@@ -66,7 +62,7 @@ docker exec -it e_bank_airflow airflow users create --username fiestta --passwor
   * Выберите тип: **PostgreSQL**
   * **Host:** `db` *(обращение идет по имени контейнера)*
   * **Database name:** `e_bank`
-  * **Username:** `postgres`
+  * **Username:** `fiestta`
   * **Password:** `fiestta`
 
 ### 🛠 3. Управление базой (pgAdmin 4)
@@ -78,5 +74,5 @@ docker exec -it e_bank_airflow airflow users create --username fiestta --passwor
     * **Host name/address:** `db`
     * **Port:** `5432`
     * **Maintenance database:** `e_bank`
-    * **Username:** `postgres`
+    * **Username:** `fiestta`
     * **Password:** `fiestta`
