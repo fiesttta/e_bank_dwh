@@ -1,17 +1,16 @@
 import psycopg2
 import sys
-
-DB_NAME = "e_bank"
-DB_USER = "postgres"
-DB_PASS = "fiestta"
-DB_HOST = "db"
+# импорт хука для подключения
+from airflow.providers.postgres.hooks.postgres import PostgresHook
 
 def run_dq_checks():
     print("Начало проверки.")
     try:
-        conn = psycopg2.connect(dbname=DB_NAME, user=DB_USER, password=DB_PASS, host=DB_HOST)
+        # подключаемся с помощью хука
+        hook = PostgresHook(postgres_conn_id="e_bank_conn")
+        conn = hook.get_conn()
         cur = conn.cursor()
-
+        print("Подключение к БД установлено.")
         
         cur.execute("SELECT COUNT(*) FROM transactions WHERE amount <= 0;")
         invalid_tx_count = cur.fetchone()[0]

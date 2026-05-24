@@ -98,7 +98,7 @@ def generate_bank_data():
 
         # клиенты
         print("Привлекаем 200 клиентов...")
-        client_ids = []
+        client_data = []
         for _ in range(200):
             gender = random.choice(['M', 'F'])
             full_name = fake.name_male() if gender == 'M' else fake.name_female()
@@ -106,15 +106,16 @@ def generate_bank_data():
             
             cur.execute("INSERT INTO clients (full_name, email, gender, birth_date, registration_date) VALUES (%s, %s, %s, %s, %s) RETURNING client_id;",
                         (full_name, fake.unique.email(), gender, fake.date_of_birth(minimum_age=18, maximum_age=80), reg_date))
-            client_ids.append(cur.fetchone()[0])
+            client_id = cur.fetchone()[0]
+            client_data.append((client_id, reg_date))
 
         # счета
         print("Открываем счета...")
         account_data = {}
-        for client_id in client_ids:
+        for client_id, reg_date in client_data:
             for _ in range(random.randint(1, 4)):
                 currency = random.choices(['RUB', 'USD', 'EUR'], weights=[80, 10, 10])[0]
-                opened_at = fake.date_between(start_date='-4y', end_date='today')
+                opened_at = fake.date_between(start_date=reg_date, end_date='today')
                 
                 cur.execute("""INSERT INTO accounts (client_id, product_id, branch_id, account_number, balance, currency, opened_at) 
                                VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING account_id;""",
@@ -158,8 +159,9 @@ def generate_bank_data():
 
         # курсы валют
         print("Загружаем курсы валют...")
-        base_date = datetime.now() - timedelta(days=365)
-        for i in range(365):
+        years_5_in_days = 5 * 365
+        base_date = datetime.now() - timedelta(days=years_5_in_days)
+        for i in range(years_5_in_days):
             current_date = base_date + timedelta(days=i)
             usd_rate = round(random.uniform(85.0, 100.0), 4)
             eur_rate = round(usd_rate * random.uniform(1.05, 1.15), 4)

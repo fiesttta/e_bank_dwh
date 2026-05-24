@@ -59,11 +59,11 @@ chmod +x start.sh
 ### 📊 2. BI-система (Metabase)
 * **URL:** [http://localhost:3000](http://localhost:3000)
 * **Как подключить базу:**
-  * Выберите тип: **PostgreSQL**
-  * **Host:** `db` *(обращение идет по имени контейнера)*
-  * **Database name:** `e_bank`
-  * **Username:** `fiestta`
-  * **Password:** `fiestta`
+  * Как к вам обращаться: **Пишем что угодно**
+  * Для чего вы будете использовать Metabase?: **Тоже что угодно**
+  * Добавьте свои данные:
+    * Выберите тип: **PostgreSQL**
+    * Connection string: `postgresql://fiestta:fiestta@db:5432/e_bank`
 
 ### 🛠 3. Управление базой (pgAdmin 4)
 * **URL:** [http://localhost:5050](http://localhost:5050)

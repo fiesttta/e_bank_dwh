@@ -7,19 +7,19 @@
 import psycopg2
 from psycopg2.extras import execute_values
 from datetime import date
-
-# Переменные для подключения
-DB_NAME = "e_bank"
-DB_USER = "postgres"
-DB_PASS = "fiestta"
-DB_HOST = "db"
+# импорт хука для подключения
+from airflow.providers.postgres.hooks.postgres import PostgresHook
 
 # Создание функции для нашего ETL процесса
 def run_etl():
     print("Старт ETL-процесса...")
     try:
-        conn = psycopg2.connect(dbname=DB_NAME, user=DB_USER, password=DB_PASS, host=DB_HOST)
+        # подключаемся с помощью хука
+        hook = PostgresHook(postgres_conn_id="e_bank_conn")
+        conn = hook.get_conn()
         cur = conn.cursor()
+        print("Подключение к БД установлено.")
+        
 
         # Подготовка витрины
         print("Создание таблицы-витрины dm_transactions_rub...")
@@ -36,7 +36,7 @@ def run_etl():
         """)
 
         # EXTRACT (Извлечение ланных)
-        print("Извлечение данных [EXTRACT]")
+        print("Извлечение данных")
         # Вытаскивание транзакций и определение их валюты (если from_account NULL, берем to_account)
         cur.execute("""
             SELECT
