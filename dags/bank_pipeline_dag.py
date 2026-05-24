@@ -3,8 +3,11 @@ from airflow import DAG
 from airflow.operators.bash import BashOperator
 # импортируем питоновский оператор
 from airflow.operators.python import PythonOperator
-# импортируем нашу же функцию из файла
+# Наши функции
 from data_generator import generate_bank_data
+from etl_pipeline import run_etl
+from dq_checks import run_dq_checks
+
 
 default_args = {
     'owner': 'fiestta',
@@ -23,19 +26,19 @@ with DAG(
     tags=['e-bank', 'etl', 'dq'],
 ) as dag:
     # пока меняем только тут на питон оп
-    generate_data = PythonOperator(
+    generate_data_task = PythonOperator(
         task_id='generate_raw_data',
         python_callable=generate_bank_data,
     )
 
-    run_etl = BashOperator(
+    run_etl_task = PythonOperator(
         task_id='run_etl_pipeline',
-        bash_command='python /opt/airflow/etl/etl_pipeline.py',
+        python_callable=run_etl,
     )
 
-    run_dq = BashOperator(
+    run_dq_task = PythonOperator(
         task_id='run_dq_checks',
-        bash_command='python /opt/airflow/etl/dq_checks.py',
+        python_callable=run_dq_checks,
     )
 
-    generate_data >> run_etl >> run_dq
+    generate_data_task >> run_etl_task >> run_dq_task
