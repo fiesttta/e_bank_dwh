@@ -13,5 +13,5 @@ standalone_admin_password.txt
 # Скрытые файлы ОС и редакторов
 .DS_Store
 .idea/
-.vscode/
+# .vscode/
 .env
