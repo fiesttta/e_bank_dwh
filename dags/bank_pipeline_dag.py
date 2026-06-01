@@ -7,7 +7,7 @@ from airflow.operators.python import PythonOperator
 from data_generator import generate_bank_data
 from etl_pipeline import run_etl
 from dq_checks import run_dq_checks
-
+from fetch_rates import fetch_and_save_rates
 
 default_args = {
     'owner': 'fiestta',
@@ -25,7 +25,7 @@ with DAG(
     catchup=False,
     tags=['e-bank', 'etl', 'dq'],
 ) as dag:
-    # пока меняем только тут на питон оп
+
     generate_data_task = PythonOperator(
         task_id='generate_raw_data',
         python_callable=generate_bank_data,
@@ -41,4 +41,9 @@ with DAG(
         python_callable=run_dq_checks,
     )
 
-    generate_data_task >> run_etl_task >> run_dq_task
+    fetch_rates_task = PythonOperator(
+        task_id='fetch_rates',
+        python_callable=fetch_and_save_rates,
+    )
+
+    generate_data_task >> fetch_rates_task >> run_etl_task >> run_dq_task
