@@ -1,7 +1,8 @@
 from datetime import datetime, timedelta
+from socket import timeout
 from airflow import DAG
-from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator, BranchPythonOperator
+from airflow.sensors.filesystem import FileSensor
 # Наши функции
 from data_generator import generate_bank_data
 from etl_pipeline import run_etl
@@ -35,6 +36,14 @@ with DAG(
     tags=['e-bank', 'etl', 'dq'],
 ) as dag:
 
+    wait_file_task = FileSensor(
+        task_id='wait_trigger_file',
+        filepath='/opt/airflow/etl/trigger.txt',
+        poke_interval=23,
+        mode='reschedule',
+        timeout=60 * 60
+    )
+
     generate_data_task = PythonOperator(
         task_id='generate_raw_data',
         python_callable=generate_bank_data,
@@ -65,5 +74,5 @@ with DAG(
         python_callable=fetch_and_save_rates,
     )
 
-    generate_data_task >> fetch_rates_task >> run_etl_task >> run_dq_branch 
-    run_dq_branch >> [success_task, alarm_task]
+    wait_file_task >> generate_data_task >> fetch_rates_task >> run_etl_task
+    run_etl_task >> run_dq_branch >> [success_task, alarm_task]

@@ -1,7 +1,7 @@
 import psycopg2
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 
-def run_dq_checks():
+def run_dq_checks(**kwargs):
     print("||| Начало проверки |||")
 
     hook = PostgresHook(postgres_conn_id="e_bank_conn")
