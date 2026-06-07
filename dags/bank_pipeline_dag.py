@@ -13,7 +13,7 @@ from fetch_rates import fetch_and_save_rates
 def send_success_notification():
     print("||| Успех. Витрины обновлены, данные в порядке |||")
 
-def send_alarm_notification():
+def send_alarm_notification(**kwargs):
     errors = kwargs['ti'].xcom_pull(task_ids='run_dq_checks', key='dq_errors')
     print("||| В данных найдены ошибки |||")
     print(f"Подробности: {errors}")
