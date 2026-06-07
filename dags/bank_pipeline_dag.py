@@ -1,13 +1,22 @@
 from datetime import datetime, timedelta
 from airflow import DAG
 from airflow.operators.bash import BashOperator
-# импортируем питоновский оператор
-from airflow.operators.python import PythonOperator
+from airflow.operators.python import PythonOperator, BranchPythonOperator
 # Наши функции
 from data_generator import generate_bank_data
 from etl_pipeline import run_etl
 from dq_checks import run_dq_checks
 from fetch_rates import fetch_and_save_rates
+
+# заглушки типо уведомления
+def send_success_notification():
+    print("||| Успех. Витрины обновлены, данные в порядке |||")
+
+def send_alarm_notification():
+    errors = kwargs['ti'].xcom_pull(task_ids='run_dq_checks', key='dq_errors')
+    print("||| В данных найдены ошибки |||")
+    print(f"Подробности: {errors}")
+
 
 default_args = {
     'owner': 'fiestta',
@@ -36,9 +45,19 @@ with DAG(
         python_callable=run_etl,
     )
 
-    run_dq_task = PythonOperator(
+    run_dq_branch = BranchPythonOperator(
         task_id='run_dq_checks',
         python_callable=run_dq_checks,
+    )
+    
+    success_task = PythonOperator(
+        task_id='dq_success_task',
+        python_callable=send_success_notification
+    )
+
+    alarm_task = PythonOperator(
+    task_id='dq_alarm_task',
+    python_callable=send_alarm_notification
     )
 
     fetch_rates_task = PythonOperator(
@@ -46,4 +65,5 @@ with DAG(
         python_callable=fetch_and_save_rates,
     )
 
-    generate_data_task >> fetch_rates_task >> run_etl_task >> run_dq_task
+    generate_data_task >> fetch_rates_task >> run_etl_task >> run_dq_branch 
+    run_dq_branch >> [success_task, alarm_task]
