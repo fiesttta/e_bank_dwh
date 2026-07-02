@@ -17,6 +17,40 @@ services:
       retries: 5
     restart: unless-stopped
 
+  greenplum:
+    image: andruche/greenplum:6.25.3-4seg-slim-amd64
+    container_name: e_bank_greenplum
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=e_bank_dwh
+    restart: unless-stopped
+
+  greenplum_init:
+    image: postgres:15-alpine
+    container_name: greenplum_initializer
+    depends_on:
+      - greenplum
+    environment:
+      - PGPASSWORD=gpadmin
+    volumes:
+      - ./migrations:/scripts
+    command: >
+      sh -c "
+      echo '/// Ожидание старта Greenplum ///' &&
+      until pg_isready -h greenplum -p 5432 -U gpadmin; do
+        sleep 5;
+      done &&
+      sleep 5;
+      echo '/// Создание бд ///' &&
+      psql -h greenplum -U gpadmin -d postgres -c 'CREATE DATABASE e_bank_dwh;' || true &&
+      echo '/// Создание колоночных таблиц ///' &&
+      psql -h greenplum -U gpadmin -d e_bank_dwh -f /scripts/init_greenplum.sql &&
+      echo '/// Инициализация есть ///'
+      "
+
   airflow_db:
     image: postgres:15
     container_name: airflow_postgres
@@ -58,6 +92,13 @@ services:
       - "5050:80"
     depends_on:
       - db
+    restart: unless-stopped
+
+  cloudbeaver:
+    image: dbeaver/cloudbeaver:latest
+    container_name: e_bank_cloudbeaver
+    ports:
+      - "8088:8978"
     restart: unless-stopped
 
   airflow:
