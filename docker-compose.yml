@@ -122,6 +122,7 @@ services:
       - PYTHONPATH=/opt/airflow/etl
       - _PIP_ADDITIONAL_REQUIREMENTS=faker psycopg2-binary pandas requests
       - AIRFLOW_CONN_E_BANK_CONN=postgresql://fiestta:fiestta@db:5432/e_bank
+      - AIRFLOW_CONN_GREENPLUM_DWH=postgresql://gpadmin:gpadmin@greenplum:5432/e_bank_dwh
       - AIRFLOW_VAR_RATES_API_URL=https://api.exchangerate-api.com/v4/latest/USD
     command: standalone
     depends_on:
