@@ -8,6 +8,7 @@ from data_generator import generate_bank_data
 from etl_pipeline import run_etl
 from dq_checks import run_dq_checks
 from fetch_rates import fetch_and_save_rates
+from pg_to_gp_transfer import transfer_data_to_dwh
 
 # заглушки типо уведомления
 def send_success_notification():
@@ -74,5 +75,10 @@ with DAG(
         python_callable=fetch_and_save_rates,
     )
 
-    wait_file_task >> generate_data_task >> fetch_rates_task >> run_etl_task
+    transfer_to_gp_task = PythonOperator(
+        task_id='transfer_pg_to_gp',
+        python_callable=transfer_data_to_dwh,
+    )
+
+    wait_file_task >> generate_data_task >> transfer_to_gp_task >> fetch_rates_task >> run_etl_task
     run_etl_task >> run_dq_branch >> [success_task, alarm_task]
