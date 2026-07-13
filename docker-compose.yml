@@ -88,8 +88,11 @@ services:
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@admin.com
       PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_SERVER_JSON_FILE: "/pgadmin4/servers.json"
     ports:
       - "5050:80"
+    volumes:
+      - ./pgadmin-servers.json:/pgadmin4/servers.json
     depends_on:
       - db
     restart: unless-stopped
@@ -99,6 +102,8 @@ services:
     container_name: e_bank_cloudbeaver
     ports:
       - "8088:8978"
+    volumes:
+      - ./cloudbeaver-data-sources.json:/opt/cloudbeaver/workspace/GlobalConfiguration/.dbeaver/data-sources.json
     restart: unless-stopped
 
   airflow:
@@ -116,14 +121,12 @@ services:
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@airflow_db/airflow
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
       - AIRFLOW__CORE__LOAD_EXAMPLES=False
-      - _AIRFLOW_WWW_USER_CREATE=true
-      - _AIRFLOW_WWW_USER_USERNAME=fiestta
-      - _AIRFLOW_WWW_USER_PASSWORD=fiestta
       - PYTHONPATH=/opt/airflow/etl
       - _PIP_ADDITIONAL_REQUIREMENTS=faker psycopg2-binary pandas requests
       - AIRFLOW_CONN_E_BANK_CONN=postgresql://fiestta:fiestta@db:5432/e_bank
       - AIRFLOW_CONN_GREENPLUM_DWH=postgresql://gpadmin:gpadmin@greenplum:5432/e_bank_dwh
       - AIRFLOW_VAR_RATES_API_URL=https://api.exchangerate-api.com/v4/latest/USD
+      - AIRFLOW__WEBSERVER__AUth_ROLE_PUBLIC=Admin
     command: standalone
     depends_on:
       db:

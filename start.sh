@@ -23,6 +23,10 @@ sudo docker exec -t e_bank_airflow airflow users create \
     --role Admin \
     --email fiestta@ebank.com || true
 
+sudo touch etl/trigger.txt
+echo "/// Снимаем DAG с паузы ///"
+docker exec e_bank_airflow airflow dags unpause e_bank_daily_etl
+
 echo "/// Готово ///"
 echo "- Airflow: http://localhost:8080"
 echo "- Metabase: http://localhost:3000"
