@@ -3,7 +3,7 @@ from socket import timeout
 from airflow import DAG
 from airflow.operators.python import PythonOperator, BranchPythonOperator
 from airflow.sensors.filesystem import FileSensor
-# Наши функции
+
 from data_generator import generate_bank_data
 from etl_pipeline import run_etl
 from dq_checks import run_dq_checks
@@ -80,5 +80,6 @@ with DAG(
         python_callable=transfer_data_to_dwh,
     )
 
-    wait_file_task >> generate_data_task >> transfer_to_gp_task >> fetch_rates_task >> run_etl_task
-    run_etl_task >> run_dq_branch >> [success_task, alarm_task]
+    wait_file_task >> [generate_data_task, fetch_rates_task] 
+    [generate_data_task, fetch_rates_task] >> transfer_to_gp_task
+    transfer_to_gp_task >>  run_etl_task >> run_dq_branch >> [success_task, alarm_task]
