@@ -56,5 +56,17 @@ CREATE TABLE IF NOT EXISTS transactions (
     tx_type TEXT,
     created_at TIMESTAMP
 ) 
-WITH (appendoptimized=true, orientation=column)
-DISTRIBUTED BY (from_account_id);
+WITH (
+    appendoptimized=true, 
+    orientation=column,
+    compresstype=zstd,
+    compresslevel=1
+)
+DISTRIBUTED BY (from_account_id)
+PARTITION BY RANGE (created_at)
+(
+    START('2020-01-01 00:00:00'::timestamp)
+    END('2027-01-01 00:00:00'::timestamp)
+    EVERY (INTERVAL '1 month'),
+    DEFAULT PARTITION other_months
+);

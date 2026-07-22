@@ -3,7 +3,7 @@ from psycopg2.extras import execute_values
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 
 def transfer_data_to_dwh():
-    print("/// Старт пререноса ///")
+    print("/// Старт пререноса (new) ///")
 
     try:
         pg_hook = PostgresHook(postgres_conn_id="e_bank_conn")
@@ -26,7 +26,10 @@ def transfer_data_to_dwh():
         def load_table_in_chunks(table_name, chunk_size=10000):
             print(f"/// Перенос таблицы: {table_name.upper()} ///")
 
-            pg_cur.execute(f"SELECT * FROM {table_name};")
+            if table_name == 'transactions':
+                pg_cur.execute(f"SELECT * FROM {table_name} ORDER BY created_at;")
+            else:
+                pg_cur.execute(f"SELECT * FROM {table_name};")
             columns = [desc[0] for desc in pg_cur.description]
             col_names = ", ".join(columns)
 
