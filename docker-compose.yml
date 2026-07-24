@@ -77,14 +77,6 @@ services:
       - db
     restart: unless-stopped
 
-  scripts:
-    build: ./etl
-    container_name: e_bank_scripts
-    depends_on:
-      - db
-    volumes:
-      - ./etl:/app
-
   pgadmin:
     image: dpage/pgadmin4
     container_name: e_bank_pgadmin
