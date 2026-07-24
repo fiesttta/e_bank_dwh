@@ -22,10 +22,13 @@ services:
     container_name: e_bank_greenplum
     ports:
       - "5433:5432"
+      - "8081:8081"
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=e_bank_dwh
+    volumes:
+      - ./etl:/shared_data
     restart: unless-stopped
 
   greenplum_init:

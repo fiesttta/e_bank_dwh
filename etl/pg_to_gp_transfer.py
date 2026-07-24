@@ -1,9 +1,9 @@
 import psycopg2
-from psycopg2.extras import execute_values
+import os
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 
 def transfer_data_to_dwh():
-    print("/// Старт пререноса (new) ///")
+    print("/// Старт пререноса (ыекуфь) ///")
 
     try:
         pg_hook = PostgresHook(postgres_conn_id="e_bank_conn")
@@ -23,34 +23,32 @@ def transfer_data_to_dwh():
             gp_cur.execute(f"TRUNCATE TABLE {table};")
         gp_conn.commit()
 
-        def load_table_in_chunks(table_name, chunk_size=10000):
+        def stream_table(table_name):
             print(f"/// Перенос таблицы: {table_name.upper()} ///")
 
-            if table_name == 'transactions':
-                pg_cur.execute(f"SELECT * FROM {table_name} ORDER BY created_at;")
-            else:
-                pg_cur.execute(f"SELECT * FROM {table_name};")
-            columns = [desc[0] for desc in pg_cur.description]
-            col_names = ", ".join(columns)
+            tmp_file = f"/tmp/{table_name}.csv"
 
-            insert_query = f"INSERT INTO {table_name} ({col_names}) VALUES %s"
+            print("/// Выгрузка в буфер ///")
+            with open(tmp_file, 'w') as f:
+                if table_name == 'transactions':
+                    pg_cur.copy_expert(f"COPY (SELECT * FROM {table_name} ORDER BY created_at) TO STDOUT WITH CSV HEADER", f)
+                else:
+                    pg_cur.copy_expert(f"COPY {table_name} TO STDOUT WITH CSV HEADER", f)
 
-            rows_inserted = 0
-            while True:
-                records = pg_cur.fetchmany(chunk_size)
+            print("/// Поток в GP ///")
+            with open(tmp_file, 'r') as f:
+                gp_cur.copy_expert(f"COPY {table_name} FROM STDIN WITH CSV HEADER", f)
+            gp_conn.commit()
 
-                if not records:
-                    break
+            if os.path.exists(tmp_file):
+                os.remove(tmp_file)
 
-                execute_values(gp_cur, insert_query, records)
-                gp_conn.commit()
-
-                rows_inserted += len(records)
-                print(f"/// Загружено {rows_inserted} строк... ///")
-            print(f"Таблица {table_name} успешно перенесена. Строк: {rows_inserted}")
+            gp_cur.execute(f"SELECT COUNT(*) FROM {table_name};")
+            rows_inserted = gp_cur.fetchone()[0]
+            print(f"Успешно. Строк: {rows_inserted}\n")
 
         for t in tables_to_load:
-            load_table_in_chunks(t)
+            stream_table(t)
             
         pg_cur.close()
         gp_cur.close()
@@ -61,6 +59,7 @@ def transfer_data_to_dwh():
 
     except Exception as e:
         print(f"Ошибка при переносе: {e}")
-
+        raise e
+    
 if __name__ == "__main__":
     transfer_data_to_dwh()
