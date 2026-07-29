@@ -1,9 +1,3 @@
-"""
-Данный код это классический ETL-скрипт.
-Задача стоит в том что бы создать витрину данных с конвертацией 
-валюты на момент совершения транзакции.
-"""
-
 import psycopg2
 from psycopg2.extras import execute_values
 from datetime import date

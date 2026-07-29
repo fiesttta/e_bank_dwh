@@ -15,3 +15,6 @@ standalone_admin_password.txt
 .idea/
 # .vscode/
 .env
+
+# dbt
+dbt_project/.user.yml

@@ -1,0 +1,14 @@
+e_bank_gp:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: greenplum
+      user: gpadmin
+      pass: gpadmin
+      port: 5432
+      dbname: e_bank_dwh
+      schema: public
+      threads: 4
+# вообще не следует грузить в облако,
+# но это же демонстрационный проект, верно?
