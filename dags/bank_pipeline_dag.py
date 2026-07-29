@@ -2,15 +2,14 @@ from datetime import datetime, timedelta
 from socket import timeout
 from airflow import DAG
 from airflow.operators.python import PythonOperator, BranchPythonOperator
+from airflow.operators.bash import BashOperator
 from airflow.sensors.filesystem import FileSensor
 
 from data_generator import generate_bank_data
-from etl_pipeline import run_etl
 from dq_checks import run_dq_checks
 from fetch_rates import fetch_and_save_rates
 from pg_to_gp_transfer import transfer_data_to_dwh
 
-# заглушки типо уведомления
 def send_success_notification():
     print("||| Успех. Витрины обновлены, данные в порядке |||")
 
@@ -50,9 +49,9 @@ with DAG(
         python_callable=generate_bank_data,
     )
 
-    run_etl_task = PythonOperator(
-        task_id='run_etl_pipeline',
-        python_callable=run_etl,
+    run_dbt_task = BashOperator(
+        task_id='run_dbt_models',
+        bash_command='cd /opt/airflow/dbt_project && dbt run --profiles-dir .',
     )
 
     run_dq_branch = BranchPythonOperator(
@@ -82,4 +81,4 @@ with DAG(
 
     wait_file_task >> [generate_data_task, fetch_rates_task] 
     [generate_data_task, fetch_rates_task] >> transfer_to_gp_task
-    transfer_to_gp_task >>  run_etl_task >> run_dq_branch >> [success_task, alarm_task]
+    transfer_to_gp_task >>  run_dbt_task >> run_dq_branch >> [success_task, alarm_task]

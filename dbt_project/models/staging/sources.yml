@@ -1,0 +1,11 @@
+version: 2
+
+sources:
+  - name: raw_bank
+    database: e_bank_dwh
+    schema: public
+    tables:
+      - name: transactions
+      - name: accounts
+      - name: currency_rates
+

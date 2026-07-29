@@ -9,6 +9,7 @@ airflow.cfg
 airflow.db
 webserver_config.py
 standalone_admin_password.txt
+etl/trigger.txt
 
 # Скрытые файлы ОС и редакторов
 .DS_Store
@@ -18,3 +19,5 @@ standalone_admin_password.txt
 
 # dbt
 dbt_project/.user.yml
+target/
+dbt_packages/
