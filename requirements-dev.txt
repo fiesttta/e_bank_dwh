@@ -1,2 +1,0 @@
--r etl/requirements.txt
-apache-airflow==2.8.1

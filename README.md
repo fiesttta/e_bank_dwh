@@ -1,87 +1,90 @@
-# 🏦 E-Bank DWH & ELT Pipeline (Dockerized)
+# 🏦 E-Bank DWH: End-to-End Analytical Platform
 
-Это мой пет проект, в котором я с нуля спроектировал и построил аналитическое хранилище данных (DWH) для выдуманного цифрового банка. 
+Масштабируемое хранилище данных (DWH) для цифрового банка. Проект прошел большой путь эволюции: от ручной генерации данных и простых SQL-запросов до полноценного докеризированного ELT-конвейера с MPP-архитектурой и автоматическими проверками качества.
 
-Проект прошел путь от простых SQL-запросов и ETL до **умного докеризированного ELT-пайплайна**, который управляется оркестратором, использует колоночное MPP-хранилище (Greenplum), общается со сторонними API и автоматически проверяет качество данных.
+## 🎯 Зачем нужен этот проект? (Бизнес-задача)
+В любом банке данные о транзакциях, счетах и курсах валют хранятся в разных системах. Задача этого проекта — построить платформу, которая ежедневно:
+1. Автоматически забирает сырые данные из транзакционной базы.
+2. Очищает их и проверяет на ошибки (Data Quality).
+3. Приводит все мультивалютные переводы к единому знаменателю (в рубли) по историческому курсу.
+4. Отдает аналитикам готовые витрины данных для построения дашбордов в BI-системе.
 
-## 📊 Результат работы (BI Dashboard в Metabase)
+## ⚙️ Архитектурная схема конвейера
+![E-Bank Architecture](schema.png)
+
+## 📊 BI Dashboard (Metabase)
 ![E-Bank Dashboard](dashboard.png)
 
-## 🛠 Что внутри? (Стек)
-* **Инфраструктура:** Docker, Docker Compose, Bash-скрипт автоматизации (`start.sh`).
-* **Оркестрация (Apache Airflow):** BranchPythonOperator, FileSensor, XCom, Variables, PostgresHook и батч-оптимизация трансфера (execute_values).
-* **Базы данных:** 
-  * **PostgreSQL (OLTP):** Источник сырых транзакционных данных.
-  * **Greenplum (DWH):** Колоночное MPP-хранилище.
-* **ELT / Инженерия:** Python (`requests`, `psycopg2`, `pandas`, `faker`), SQL.
-* **Аналитика:** Metabase (BI), оконные функции (Window Functions), распределенные JOIN'ы.
-* **Data Quality:** Поиск аномалий на стороне Greenplum перед сборкой витрин и ветвление через XCom.
-* **UI Инструменты:** pgAdmin (для Postgres) и CloudBeaver (для Greenplum).
+## 🛠 Технологический стек и архитектурные решения
 
-## 📁 Как всё устроено (Архитектура)
+* **Хранилище данных: Greenplum (DWH)**
+  * Использование колоночного хранения (`orientation=column`), компрессии (`zstd`) и MPP-архитектуры для аналитических нагрузок. Настроено партиционирование транзакций по дате и дистрибуция (`DISTRIBUTED BY`) для избежания Data Skew.
+* **Источники: PostgreSQL (OLTP) & REST API**
+  * Эмуляция системы банка и интеграция с внешним API для загрузки курсов валют.
+* **Трансформация (ELT): dbt (Data Build Tool)**
+  * Отказ от In-Memory вычислений в Python в пользу мощностей Greenplum. Реализована слоистая архитектура (Staging -> Intermediate -> Marts).
+* **Оркестрация: Apache Airflow**
+  * Использование `FileSensor` для запуска по событию, ветвление (`BranchPythonOperator`) и батч-оптимизация трансфера данных (`COPY TO/FROM`).
+* **BI и UI Инструменты:**
+  * **Metabase** — построение финальных дашбордов для бизнеса.
+  * **CloudBeaver** — IDE для администрирования Greenplum.
+  * **pgAdmin 4** — управление транзакционной БД PostgreSQL.
+* **Инфраструктура: Docker & Docker Compose**
+  * Полностью изолированная среда (IaC). Включает основные сервисы и служебные контейнеры (`airflow_db` для метаданных оркестратора, `greenplum_init` для автоматической накатки DDL миграций).
 
-* `/analytics` — Библиотека SQL-запросов (Топ-10 отправителей, "спящие" клиенты, трекинг онбординга).
-* `/dags` — Настройки оркестратора:
-  * `bank_pipeline_dag.py` — Главный ELT конвейер. Ждет файл -> Генерирует сырые данные -> Качает курсы -> Быстро переносит данные в Greenplum (`pg_to_gp_transfer.py`) -> Собирает витрины внутри GP -> Проводит DQ проверки.
-  * `clean_xcom_dag.py` — Служебный DAG для ежедневной очистки кэша Airflow.
-* `/etl` — Python-модули:
-  * `data_generator.py` — Имитация истории банка (клиенты, счета, транзакции).
-  * `fetch_rates.py` — Интеграция с REST API для курсов валют.
-  * `etl_pipeline.py` — Трансформация сырых данных в аналитическую витрину `dm_transactions_rub`.
-  * `pg_to_gp_transfer.py` — Мощный скрипт батч-трансфера данных из Postgres в Greenplum.
-  * `dq_checks.py` — Data Quality тесты.
-  * `etl_pyspark_colab_example.py` — Полигон для PySpark.
-* `/migrations` — Скрипты инициализации (`init_greenplum.sql`, триггеры).
-* `start.sh` — Умный скрипт для запуска Docker, снятия DAG с паузы и развертывания инфраструктуры.
-* `docker-compose.yml` и `.json` конфиги — Поднимают всю инфраструктуру и автоматически прокидывают доступы (IaC).
+## 📁 Структура репозитория
 
-## 🚀 Как запустить проект (Боевая среда)
+* `/analytics` — Библиотека SQL-запросов (анализ топ-отправителей, оконные функции, поиск "спящих" клиентов).
+* `/dags` — DAG-файлы Airflow:
+  * `bank_pipeline_dag.py` — Основной ELT-пайплайн.
+  * `clean_xcom_dag.py` — DAG для очистки служебной кэш-памяти оркестратора.
+* `/etl` — Модули извлечения и загрузки (EL):
+  * `data_generator.py` — Синтез данных банка (~200 000 транзакций, 3000 клиентов).
+  * `pg_to_gp_transfer.py` — Мощный скрипт потокового переноса данных из OLTP в MPP.
+  * `dq_checks.py` — Data Quality проверки перед сборкой витрин.
+  * `fetch_rates.py` — REST API интеграция.
+  * `etl_pyspark_colab_example.py` — Полигон для распределенных вычислений на PySpark.
+* `/dbt_project` — SQL-модели трансформации данных и сборки витрин.
+* `/migrations` — DDL скрипты инициализации Greenplum (`init_greenplum.sql`) и триггеры.
+* `start.sh` — Bash-скрипт для умного развертывания инфраструктуры.
+* `docker-compose.yml`, `*.json` — Конфиги контейнеров и преднастройки доступов.
 
-**1. Клонируйте репозиторий:**
+## 🚀 Быстрый старт (Local Environment)
+
+**Требования:** `Docker`, `Docker Compose`, ОС Linux (тестировалось на Fedora) или macOS. Windows поддерживается через WSL2.
+
+**1. Клонирование репозитория:**
 ```bash
 git clone [https://github.com/fiesttta/e_bank_dwh.git](https://github.com/fiesttta/e_bank_dwh.git)
 cd e_bank_dwh
+
 ```
 
-**2. Разверните инфраструктуру (Docker):**
-Скрипт сам создаст нужные папки, выдаст права и поднимет все контейнеры.
+**2. Развертывание инфраструктуры:**
+Скрипт автоматически создаст необходимые директории, выдаст права (`chmod`) и поднимет контейнеры.
 
 ```bash
 chmod +x start.sh
 ./start.sh
+
 ```
 
-**3. Конвейер запустится сам (Airflow):**
-В скрипте предусмотрено автоматическое создание триггер файла и снятие с паузы DAGа. Airflow увидит файл и запустит весь процесс ELT!
+**3. Запуск пайплайна:**
+Инфраструктура разворачивается вместе с триггер-файлом. Airflow автоматически выйдет из паузы, обнаружит файл и запустит ELT-процесс генерации, переноса и трансформации данных.
 
-🎉 **Готово! Данные перенесены в Greenplum и готовы к анализу.**
+## 🌐 Интерфейсы и доступы
 
-## 🌐 Доступы к интерфейсам (Где смотреть результат)
+* **Apache Airflow:** [http://localhost:8080](http://localhost:8080) (`fiestta` / `fiestta`)
+* **Metabase (BI):** [http://localhost:3000](http://localhost:3000)
+* **CloudBeaver (Greenplum UI):** [http://localhost:8090](http://localhost:8090) (Подключение преднастроено через `cloudbeaver-data-sources.json`)
+* **pgAdmin 4 (Postgres UI):** [http://localhost:5050](http://localhost:5050) (`admin@admin.com` / `admin`) (Подключение преднастроено через `pgadmin-servers.json`)
 
-### ⚙️ 1. Оркестратор (Apache Airflow)
+---
 
-* **URL:** [http://localhost:8080](http://localhost:8080)
-* **Логин / Пароль:** `fiestta` / `fiestta`
+**Автор:**
+* Лукьянов Никита Романович 
 
-### 📊 2. BI-система (Metabase)
-
-* **URL:** [http://localhost:3000](http://localhost:3000)
-* **Как подключить базы (PostgreSQL / Greenplum):**
-  * Как к вам обращаться: **Пишем что угодно**
-  * Для чего вы будете использовать Metabase?: **Тоже что угодно**
-  * Добавьте свои данные:
-    * Выберите тип: **PostgreSQL**
-    * Connection string для PostgreSQL: `postgresql://fiestta:fiestta@db:5432/e_bank`
-    * Connection string для Greenplum: `postgresql://gpadmin:gpadmin@greenplum:5432/e_bank_dwh`
-
-### 🐘 3. Управление Greenplum (CloudBeaver)
-
-* **URL:** [http://localhost:8090](http://localhost:8090)
-* В поле Administrator Credentials создайте пароль, после этого нажмите Next и Finish.
-* Подключение к `e_bank_dwh` уже преднастроено через конфиг `cloudbeaver-data-sources.json`.
-
-### 🛠 4. Управление сырым PostgreSQL (pgAdmin 4)
-
-* **URL:** [http://localhost:5050](http://localhost:5050)
-* **Логин:** `admin@admin.com` / **Пароль:** `admin`
-* Серверы подтянутся автоматически из `pgadmin-servers.json` (потребуется только ввести пароль БД для подключения).
+**Связь:** 
+* Telegram: @fiesttttta
+* VK: @fiesttta
+* E-mail: fiestttttta@gmail.com

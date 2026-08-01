@@ -5,3 +5,5 @@ faker
 requests
 dbt-core==1.7.4
 dbt-postgres==1.7.4
+
+# apache-airflow==2.8.1
